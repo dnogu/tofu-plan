@@ -1,0 +1,89 @@
+name: 'Tofu Init'
+description: 'A GitHub Action to run tofu init with all supported options.'
+author: 'dnogu'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
+inputs:
+  working-directory:
+    description: 'The directory in which to run tofu init.'
+    required: false
+    default: '.'
+  chdir:
+    description: 'Switch working directory before executing tofu init (--chdir).'
+    required: false
+    default: ''
+  input:
+    description: 'Ask for input if necessary (--input=true|false).'
+    required: false
+    default: 'true'
+  lock:
+    description: 'Enable or disable state locking (--lock=true|false).'
+    required: false
+    default: 'true'
+  lock-timeout:
+    description: 'Override the time to wait for a state lock (--lock-timeout=<duration>).'
+    required: false
+    default: '0s'
+  no-color:
+    description: 'Disable color codes in output (--no-color).'
+    required: false
+    default: 'false'
+  upgrade:
+    description: 'Upgrade modules and plugins (--upgrade).'
+    required: false
+    default: 'false'
+  json:
+    description: 'Produce output in JSON format (--json).'
+    required: false
+    default: 'false'
+  var:
+    description: 'Set input variable(s) (--var NAME=VALUE, comma separated or repeatable).'
+    required: false
+    default: ''
+  var-file:
+    description: 'Set input variables from file(s) (--var-file=FILENAME, comma separated or repeatable).'
+    required: false
+    default: ''
+  from-module:
+    description: 'Copy a source module before initialization (--from-module=MODULE-SOURCE).'
+    required: false
+    default: ''
+  backend:
+    description: 'Enable or disable backend initialization (--backend=true|false).'
+    required: false
+    default: 'true'
+  backend-config:
+    description: 'Backend config file or key=value pairs (--backend-config=..., comma separated or repeatable).'
+    required: false
+    default: ''
+  reconfigure:
+    description: 'Reconfigure the backend (--reconfigure).'
+    required: false
+    default: 'false'
+  migrate-state:
+    description: 'Migrate state to new backend (--migrate-state).'
+    required: false
+    default: 'false'
+  force-copy:
+    description: 'Force copy state from previous backend (--force-copy).'
+    required: false
+    default: 'false'
+  get:
+    description: 'Enable or disable child module installation (--get=true|false).'
+    required: false
+    default: 'true'
+  plugin-dir:
+    description: 'Force plugin installation from a specific directory (--plugin-dir=PATH).'
+    required: false
+    default: ''
+  lockfile:
+    description: 'Set dependency lockfile mode (--lockfile=readonly|... ).'
+    required: false
+    default: ''
+outputs:
+  init-output:
+    description: 'The output from tofu init.'
+branding:
+  icon: 'box'
+  color: 'yellow'
