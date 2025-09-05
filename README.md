@@ -112,7 +112,7 @@ steps:
       working-directory: ./infra
 ```
 
-### Tofu Plan With Variables
+### Tofu Plan with Variables
 ```yaml
 steps:
   - name: Checkout code
