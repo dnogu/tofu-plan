@@ -105,6 +105,10 @@ inputs:
     description: 'Display sensitive values in output (--show-sensitive).'
     required: false
     default: 'false'
+  display-plan:
+    description: 'Display the plan output in the GitHub Actions log (true/false).'
+    required: false
+    default: 'true'
 outputs:
   plan-output:
     description: 'The output from tofu plan.'

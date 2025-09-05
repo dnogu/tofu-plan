@@ -84,6 +84,7 @@ jobs:
 | parallelism         | Limit the number of concurrent operations (--parallelism=n).                | `10`        |
 | state               | Legacy option for local backend only (--state=STATEFILE).                   | `''`        |
 | show-sensitive      | Display sensitive values in output (--show-sensitive).                      | `false`     |
+| display-plan        | Display the plan output in the GitHub Actions log (true/false).             | `true`      |
 
 ## Outputs
 
@@ -153,6 +154,25 @@ steps:
     with:
       name: terraform-plan
       path: ./infra/tfplan
+```
+
+### Quiet Plan (No Output Display)
+```yaml
+steps:
+  - name: Checkout code
+    uses: actions/checkout@v4
+  
+  - name: Setup OpenTofu
+    uses: opentofu/setup-opentofu@v1
+    with:
+      tofu_version: '1.8.0'
+  
+  - name: Run Quiet Plan
+    uses: dnogu/tofu-plan@v1
+    with:
+      working-directory: ./infra
+      display-plan: false
+      out: "plan-output"
 ```
 
 ## Author

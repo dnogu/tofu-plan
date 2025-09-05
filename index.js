@@ -97,7 +97,8 @@ async function run() {
       concise: core.getInput('concise'),
       parallelism: core.getInput('parallelism'),
       state: core.getInput('state'),
-      showSensitive: core.getInput('show-sensitive')
+      showSensitive: core.getInput('show-sensitive'),
+      displayPlan: core.getInput('display-plan')
     };
 
     const cmd = buildTofuPlanCommand(inputs);
@@ -116,8 +117,21 @@ async function run() {
       if (inputs.detailedExitcode === 'true' && (exitCode === 0 || exitCode === 2)) {
         core.info(`tofu plan completed with exit code ${exitCode}.`);
       } else if (exitCode !== 0) {
+        // Still show the output even if there's an error
+        if (output && inputs.displayPlan !== 'false') {
+          core.startGroup('📋 OpenTofu Plan Output (with errors)');
+          console.log(output);
+          core.endGroup();
+        }
         throw error;
       }
+    }
+    
+    // Print the plan output to the console for visibility
+    if (output && inputs.displayPlan !== 'false') {
+      core.startGroup('📋 OpenTofu Plan Output');
+      console.log(output);
+      core.endGroup();
     }
     
     core.setOutput('plan-output', output);
