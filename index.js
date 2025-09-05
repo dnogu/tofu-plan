@@ -26,32 +26,42 @@ function getRepeatableFlag(name, value) {
   return value.split(',').map(v => `--${name}=${v.trim()}`);
 }
 
-function buildTofuInitCommand(inputs) {
-  let cmdParts = ['tofu', 'init'];
+function buildTofuPlanCommand(inputs) {
+  let cmdParts = ['tofu', 'plan'];
 
   // Global option
   if (inputs.chdir) {
-    cmdParts = ['tofu', `-chdir=${inputs.chdir}`, 'init'];
+    cmdParts = ['tofu', `-chdir=${inputs.chdir}`, 'plan'];
   }
 
-  // Flags - only add if different from defaults
-  if (inputs.input && inputs.input !== 'true') cmdParts.push(getFlag('input', inputs.input, 'string'));
-  if (inputs.lock && inputs.lock !== 'true') cmdParts.push(getFlag('lock', inputs.lock, 'string'));
-  if (inputs.lockTimeout && inputs.lockTimeout !== '0s') cmdParts.push(getFlag('lock-timeout', inputs.lockTimeout, 'string'));
-  if (inputs.noColor === 'true') cmdParts.push('--no-color');
-  if (inputs.upgrade === 'true') cmdParts.push('--upgrade');
-  if (inputs.json === 'true') cmdParts.push('--json');
+  // Planning modes (mutually exclusive)
+  if (inputs.destroy === 'true') cmdParts.push('--destroy');
+  if (inputs.refreshOnly === 'true') cmdParts.push('--refresh-only');
+
+  // Planning options
+  if (inputs.refresh === 'false') cmdParts.push('--refresh=false');
+  cmdParts = cmdParts.concat(getRepeatableFlag('replace', inputs.replace));
+  cmdParts = cmdParts.concat(getRepeatableFlag('target', inputs.target));
+  if (inputs.targetFile) cmdParts.push(getFlag('target-file', inputs.targetFile, 'string'));
+  cmdParts = cmdParts.concat(getRepeatableFlag('exclude', inputs.exclude));
+  if (inputs.excludeFile) cmdParts.push(getFlag('exclude-file', inputs.excludeFile, 'string'));
   cmdParts = cmdParts.concat(getRepeatableFlag('var', inputs.var));
   cmdParts = cmdParts.concat(getRepeatableFlag('var-file', inputs.varFile));
-  cmdParts.push(getFlag('from-module', inputs.fromModule, 'string'));
-  if (inputs.backend && inputs.backend !== 'true') cmdParts.push(getFlag('backend', inputs.backend, 'string'));
-  cmdParts = cmdParts.concat(getRepeatableFlag('backend-config', inputs.backendConfig));
-  if (inputs.reconfigure === 'true') cmdParts.push('--reconfigure');
-  if (inputs.migrateState === 'true') cmdParts.push('--migrate-state');
-  if (inputs.forceCopy === 'true') cmdParts.push('--force-copy');
-  if (inputs.get && inputs.get !== 'true') cmdParts.push(getFlag('get', inputs.get, 'string'));
-  cmdParts.push(getFlag('plugin-dir', inputs.pluginDir, 'string'));
-  cmdParts.push(getFlag('lockfile', inputs.lockfile, 'string'));
+
+  // Other options
+  if (inputs.compactWarnings === 'true') cmdParts.push('--compact-warnings');
+  if (inputs.detailedExitcode === 'true') cmdParts.push('--detailed-exitcode');
+  if (inputs.generateConfigOut) cmdParts.push(getFlag('generate-config-out', inputs.generateConfigOut, 'string'));
+  if (inputs.input === 'false') cmdParts.push('--input=false');
+  if (inputs.json === 'true') cmdParts.push('--json');
+  if (inputs.lock === 'false') cmdParts.push('--lock=false');
+  if (inputs.lockTimeout && inputs.lockTimeout !== '0s') cmdParts.push(getFlag('lock-timeout', inputs.lockTimeout, 'string'));
+  if (inputs.noColor === 'true') cmdParts.push('--no-color');
+  if (inputs.concise === 'true') cmdParts.push('--concise');
+  if (inputs.out) cmdParts.push(getFlag('out', inputs.out, 'string'));
+  if (inputs.parallelism && inputs.parallelism !== '10') cmdParts.push(getFlag('parallelism', inputs.parallelism, 'string'));
+  if (inputs.state) cmdParts.push(getFlag('state', inputs.state, 'string'));
+  if (inputs.showSensitive === 'true') cmdParts.push('--show-sensitive');
 
   // Remove empty strings
   cmdParts = cmdParts.filter(Boolean);
@@ -65,30 +75,54 @@ async function run() {
     
     const inputs = {
       chdir: core.getInput('chdir'),
+      destroy: core.getInput('destroy'),
+      refreshOnly: core.getInput('refresh-only'),
+      refresh: core.getInput('refresh'),
+      replace: core.getInput('replace'),
+      target: core.getInput('target'),
+      targetFile: core.getInput('target-file'),
+      exclude: core.getInput('exclude'),
+      excludeFile: core.getInput('exclude-file'),
+      var: core.getInput('var'),
+      varFile: core.getInput('var-file'),
+      out: core.getInput('out'),
+      compactWarnings: core.getInput('compact-warnings'),
+      detailedExitcode: core.getInput('detailed-exitcode'),
+      generateConfigOut: core.getInput('generate-config-out'),
       input: core.getInput('input'),
+      json: core.getInput('json'),
       lock: core.getInput('lock'),
       lockTimeout: core.getInput('lock-timeout'),
       noColor: core.getInput('no-color'),
-      upgrade: core.getInput('upgrade'),
-      json: core.getInput('json'),
-      var: core.getInput('var'),
-      varFile: core.getInput('var-file'),
-      fromModule: core.getInput('from-module'),
-      backend: core.getInput('backend'),
-      backendConfig: core.getInput('backend-config'),
-      reconfigure: core.getInput('reconfigure'),
-      migrateState: core.getInput('migrate-state'),
-      forceCopy: core.getInput('force-copy'),
-      get: core.getInput('get'),
-      pluginDir: core.getInput('plugin-dir'),
-      lockfile: core.getInput('lockfile')
+      concise: core.getInput('concise'),
+      parallelism: core.getInput('parallelism'),
+      state: core.getInput('state'),
+      showSensitive: core.getInput('show-sensitive')
     };
 
-    const cmd = buildTofuInitCommand(inputs);
+    const cmd = buildTofuPlanCommand(inputs);
     core.info(`Running: ${cmd}`);
-    const output = execSync(cmd, { cwd: workingDir, encoding: 'utf-8' });
-    core.setOutput('init-output', output);
-    core.info('tofu init completed successfully.');
+    
+    let output;
+    let exitCode = 0;
+    
+    try {
+      output = execSync(cmd, { cwd: workingDir, encoding: 'utf-8' });
+    } catch (error) {
+      output = error.stdout || error.message;
+      exitCode = error.status || 1;
+      
+      // If detailed-exitcode is enabled, exit codes 0, 1, and 2 are expected
+      if (inputs.detailedExitcode === 'true' && (exitCode === 0 || exitCode === 2)) {
+        core.info(`tofu plan completed with exit code ${exitCode}.`);
+      } else if (exitCode !== 0) {
+        throw error;
+      }
+    }
+    
+    core.setOutput('plan-output', output);
+    core.setOutput('exitcode', exitCode);
+    core.info('tofu plan completed successfully.');
   } catch (error) {
     core.setFailed(error.message);
   }
@@ -98,7 +132,7 @@ async function run() {
 module.exports = {
   getFlag,
   getRepeatableFlag,
-  buildTofuInitCommand,
+  buildTofuPlanCommand,
   run
 };
 

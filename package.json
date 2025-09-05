@@ -1,8 +1,9 @@
 {
-  "name": "github-tofu-init",
-  "version": "1.3.0",
+  "name": "github-tofu-plan",
+  "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "description": "A GitHub Action to run tofu plan with all supported options",
   "scripts": {
     "test": "jest",
     "test:integration": "jest --testPathPattern=integration",

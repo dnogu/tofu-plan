@@ -1,88 +1,101 @@
-# GitHub Tofu Init Action
+# GitHub Tofu Plan Action
 
-This GitHub Action runs `tofu init` with all supported options, automating OpenTofu initialization in your CI/CD workflows.
+This GitHub Action runs `tofu plan` with all supported options, automating OpenTofu planning in your CI/CD workflows.
 
 ## Quick Start
 
-The most basic usage - initialize OpenTofu in your current directory:
+The most basic usage - create a plan for OpenTofu in your current directory:
 
 ```yaml
 steps:
   - uses: actions/checkout@v4
-  - uses: dnogu/tofu-init@v1
+  - uses: dnogu/tofu-plan@v1
 ```
 
 ## Usage
 
 ```yaml
-name: Initialize OpenTofu
+name: Plan OpenTofu
 on:
   push:
     branches: [ main ]
 jobs:
-  tofu-init:
+  tofu-plan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Run tofu init
-        uses: dnogu/tofu-init@v1
+      - name: Run tofu plan
+        uses: dnogu/tofu-plan@v1
         with:
           working-directory: ./infra
-          upgrade: true
-          backend-config: "key1=value1,key2=value2"
+          destroy: false
+          refresh-only: false
+          refresh: true
+          replace: ""
+          target: ""
+          target-file: ""
+          exclude: ""
+          exclude-file: ""
           var: "foo=bar,bar=baz"
           var-file: "variables.tfvars"
-          reconfigure: false
-          force-copy: false
-          input: true
-          lock: true
-          lock-timeout: "30s"
-          no-color: false
+          out: "tfplan"
+          compact-warnings: false
+          detailed-exitcode: false
+          generate-config-out: ""
+          input: false
           json: false
-          from-module: "github.com/opentofu/modules/example"
-          backend: true
-          migrate-state: false
-          get: true
-          plugin-dir: ""
-          lockfile: ""
+          lock: true
+          lock-timeout: "0s"
+          no-color: false
+          concise: false
+          parallelism: 10
+          state: ""
+          show-sensitive: false
 
 ```
 
 ## Inputs
 
-| Name              | Description                                                                 | Default      |
-|-------------------|-----------------------------------------------------------------------------|-------------|
-| working-directory | The directory in which to run tofu init.                                    | `.`         |
-| chdir             | Switch working directory before executing tofu init (--chdir).               | `''`        |
-| input             | Ask for input if necessary (--input=true|false).                            | `true`      |
-| lock              | Enable or disable state locking (--lock=true|false).                        | `true`      |
-| lock-timeout      | Override the time to wait for a state lock (--lock-timeout=<duration>).      | `0s`        |
-| no-color          | Disable color codes in output (--no-color).                                 | `false`     |
-| upgrade           | Upgrade modules and plugins (--upgrade).                                    | `false`     |
-| json              | Produce output in JSON format (--json).                                     | `false`     |
-| var               | Set input variable(s) (--var NAME=VALUE, comma separated or repeatable).     | `''`        |
-| var-file          | Set input variables from file(s) (--var-file=FILENAME, comma separated).     | `''`        |
-| from-module       | Copy a source module before initialization (--from-module=MODULE-SOURCE).    | `''`        |
-| backend           | Enable or disable backend initialization (--backend=true|false).             | `true`      |
-| backend-config    | Backend config file or key=value pairs (--backend-config=..., repeatable).   | `''`        |
-| reconfigure       | Reconfigure the backend (--reconfigure).                                    | `false`     |
-| migrate-state     | Migrate state to new backend (--migrate-state).                             | `false`     |
-| force-copy        | Force copy state from previous backend (--force-copy).                      | `false`     |
-| get               | Enable or disable child module installation (--get=true|false).             | `true`      |
-| plugin-dir        | Force plugin installation from a specific directory (--plugin-dir=PATH).     | `''`        |
-| lockfile          | Set dependency lockfile mode (--lockfile=readonly|... ).                    | `''`        |
+| Name                | Description                                                                 | Default      |
+|---------------------|-----------------------------------------------------------------------------|-------------|
+| working-directory   | The directory in which to run tofu plan.                                    | `.`         |
+| chdir               | Switch working directory before executing tofu plan (--chdir).               | `''`        |
+| destroy             | Create a destroy plan (--destroy).                                          | `false`     |
+| refresh-only        | Create a refresh-only plan (--refresh-only).                                | `false`     |
+| refresh             | Skip the default behavior of syncing state before planning (--refresh=false). | `true`      |
+| replace             | Force replacement of particular resource instances (--replace=ADDRESS).      | `''`        |
+| target              | Limit planning to only the given resource instances (--target=ADDRESS).      | `''`        |
+| target-file         | Limit planning to resource instances listed in file (--target-file=FILE).    | `''`        |
+| exclude             | Exclude specific resource instances from planning (--exclude=ADDRESS).       | `''`        |
+| exclude-file        | Exclude resource instances listed in file (--exclude-file=FILE).            | `''`        |
+| var                 | Set input variable(s) (--var NAME=VALUE, comma separated).                  | `''`        |
+| var-file            | Set input variables from file(s) (--var-file=FILENAME, comma separated).     | `''`        |
+| out                 | Write the plan to the given filename (--out=FILENAME).                      | `''`        |
+| compact-warnings    | Show warning messages in compact form (--compact-warnings).                 | `false`     |
+| detailed-exitcode   | Return detailed exit code (--detailed-exitcode).                            | `false`     |
+| generate-config-out | Generate configuration for import blocks (--generate-config-out=PATH).      | `''`        |
+| input               | Ask for input if necessary (--input=true|false).                            | `false`     |
+| json                | Produce output in JSON format (--json).                                     | `false`     |
+| lock                | Enable or disable state locking (--lock=true|false).                        | `true`      |
+| lock-timeout        | Override the time to wait for a state lock (--lock-timeout=DURATION).       | `0s`        |
+| no-color            | Disable color codes in output (--no-color).                                 | `false`     |
+| concise             | Disable progress-related messages (--concise).                              | `false`     |
+| parallelism         | Limit the number of concurrent operations (--parallelism=n).                | `10`        |
+| state               | Legacy option for local backend only (--state=STATEFILE).                   | `''`        |
+| show-sensitive      | Display sensitive values in output (--show-sensitive).                      | `false`     |
 
 ## Outputs
 
 | Name         | Description                      |
 |--------------|----------------------------------|
-| init-output  | The output from tofu init.       |
+| plan-output  | The output from tofu plan.       |
+| exitcode     | The exit code from tofu plan.    |
 
 
 ## Examples
 
-### Basic Tofu Init
+### Basic Tofu Plan
 ```yaml
 steps:
   - name: Checkout code
@@ -93,13 +106,13 @@ steps:
     with:
       tofu_version: '1.8.0'
   
-  - name: Run Basic Tofu Init
-    uses: dnogu/tofu-init@v1
+  - name: Run Basic Tofu Plan
+    uses: dnogu/tofu-plan@v1
     with:
       working-directory: ./infra
 ```
 
-### Tofu Init With Backend Config
+### Tofu Plan With Variables
 ```yaml
 steps:
   - name: Checkout code
@@ -110,15 +123,46 @@ steps:
     with:
       tofu_version: '1.8.0'
   
-  - name: Run tofu init with backend config
-    uses: dnogu/tofu-init@v1
+  - name: Run tofu plan with variables
+    uses: dnogu/tofu-plan@v1
     with:
       working-directory: ./infra
-      backend-config: "bucket=my-bucket,region=us-east-1"
+      var: "environment=production,region=us-east-1"
+      var-file: "prod.tfvars"
+```
+
+### Tofu Plan with Output File
+```yaml
+steps:
+  - name: Checkout code
+    uses: actions/checkout@v4
+  
+  - name: Setup OpenTofu
+    uses: opentofu/setup-opentofu@v1
+    with:
+      tofu_version: '1.8.0'
+  
+  - name: Create Plan
+    uses: dnogu/tofu-plan@v1
+    with:
+      working-directory: ./infra
+      out: "tfplan"
+  
+  - name: Upload Plan
+    uses: actions/upload-artifact@v4
+    with:
+      name: terraform-plan
+      path: ./infra/tfplan
 ```
 
 ## Author
 
-- dnogu 
-# tofu-plan
-# tofu-plan
+- dnogu
+
+## License
+
+MIT
+
+---
+
+*This action has been updated to use `tofu plan` instead of `tofu init`. For OpenTofu initialization, consider using a separate init action first.*

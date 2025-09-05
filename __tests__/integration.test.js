@@ -1,87 +1,105 @@
-const { buildTofuInitCommand } = require('../index');
+const { buildTofuPlanCommand } = require('../index');
 
-describe('OpenTofu Init Integration Tests', () => {
+describe('OpenTofu Plan Integration Tests', () => {
   describe('Basic scenarios', () => {
     test('should generate command for basic local development', () => {
       const inputs = {
         var: 'environment=dev'
       };
-      expect(buildTofuInitCommand(inputs)).toBe('tofu init --var=environment=dev');
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan --var=environment=dev');
     });
 
-    test('should generate command for production with backend config', () => {
+    test('should generate command for production planning', () => {
       const inputs = {
         varFile: 'prod.tfvars',
-        backendConfig: 'bucket=prod-terraform-state,key=prod/terraform.tfstate,region=us-east-1',
-        upgrade: 'true'
+        var: 'environment=production',
+        out: 'prod-plan'
       };
-      expect(buildTofuInitCommand(inputs)).toBe('tofu init --upgrade --var-file=prod.tfvars --backend-config=bucket=prod-terraform-state --backend-config=key=prod/terraform.tfstate --backend-config=region=us-east-1');
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan --var=environment=production --var-file=prod.tfvars --out=prod-plan');
     });
   });
 
-  describe('Backend migration scenarios', () => {
-    test('should generate command for migrating from local to remote backend', () => {
+  describe('Planning mode scenarios', () => {
+    test('should generate command for destroy planning', () => {
       const inputs = {
-        backendConfig: 'bucket=new-state-bucket,key=migrated.tfstate',
-        migrateState: 'true',
-        forceCopy: 'true'
+        destroy: 'true',
+        var: 'environment=staging',
+        out: 'destroy-plan'
       };
-      expect(buildTofuInitCommand(inputs)).toBe('tofu init --backend-config=bucket=new-state-bucket --backend-config=key=migrated.tfstate --migrate-state --force-copy');
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan --destroy --var=environment=staging --out=destroy-plan');
     });
 
-    test('should generate command for backend reconfiguration', () => {
+    test('should generate command for refresh-only planning', () => {
       const inputs = {
-        backendConfig: 'bucket=updated-bucket,region=us-west-2',
-        reconfigure: 'true'
+        refreshOnly: 'true',
+        noColor: 'true'
       };
-      expect(buildTofuInitCommand(inputs)).toBe('tofu init --backend-config=bucket=updated-bucket --backend-config=region=us-west-2 --reconfigure');
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan --refresh-only --no-color');
     });
   });
 
-  describe('OpenTofu random resource scenarios', () => {
-    test('should generate command for random resource with local backend', () => {
+  describe('Targeting scenarios', () => {
+    test('should generate command for resource targeting', () => {
+      const inputs = {
+        target: 'aws_instance.web,aws_security_group.web',
+        var: 'instance_type=t3.medium'
+      };
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan --target=aws_instance.web --target=aws_security_group.web --var=instance_type=t3.medium');
+    });
+
+    test('should generate command for resource replacement', () => {
+      const inputs = {
+        replace: 'aws_instance.database',
+        out: 'replacement-plan'
+      };
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan --replace=aws_instance.database --out=replacement-plan');
+    });
+  });
+
+  describe('Variable and output scenarios', () => {
+    test('should generate command for planning with multiple variables', () => {
       const inputs = {
         var: 'random_length=16,random_prefix=test',
-        backendConfig: 'path=./random.tfstate'
+        varFile: 'random.tfvars'
       };
-      expect(buildTofuInitCommand(inputs)).toBe('tofu init --var=random_length=16 --var=random_prefix=test --backend-config=path=./random.tfstate');
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan --var=random_length=16 --var=random_prefix=test --var-file=random.tfvars');
     });
 
-    test('should generate command for random resource with multiple var files', () => {
+    test('should generate command for planning with multiple var files', () => {
       const inputs = {
         varFile: 'common.tfvars,random.tfvars,secrets.tfvars',
-        upgrade: 'true',
-        var: 'seed_value=12345'
+        var: 'seed_value=12345',
+        out: 'multi-var-plan'
       };
-      expect(buildTofuInitCommand(inputs)).toBe('tofu init --upgrade --var=seed_value=12345 --var-file=common.tfvars --var-file=random.tfvars --var-file=secrets.tfvars');
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan --var=seed_value=12345 --var-file=common.tfvars --var-file=random.tfvars --var-file=secrets.tfvars --out=multi-var-plan');
     });
 
-    test('should generate command for random resource in subdirectory with JSON output', () => {
+    test('should generate command for planning in subdirectory with JSON output', () => {
       const inputs = {
         chdir: './modules/random',
         json: 'true',
         noColor: 'true',
         var: 'length=32'
       };
-      expect(buildTofuInitCommand(inputs)).toBe('tofu -chdir=./modules/random init --no-color --json --var=length=32');
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu -chdir=./modules/random plan --var=length=32 --json --no-color');
     });
   });
 
-  describe('Module and plugin scenarios', () => {
-    test('should generate command for copying module source', () => {
+  describe('Advanced planning scenarios', () => {
+    test('should generate command for planning with file-based targeting', () => {
       const inputs = {
-        fromModule: 'github.com/opentofu/example-random-module',
-        var: 'module_version=v1.0.0'
+        targetFile: 'targets.txt',
+        var: 'environment=staging'
       };
-      expect(buildTofuInitCommand(inputs)).toBe('tofu init --var=module_version=v1.0.0 --from-module=github.com/opentofu/example-random-module');
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan --target-file=targets.txt --var=environment=staging');
     });
 
-    test('should generate command with custom plugin directory', () => {
+    test('should generate command with exclusions', () => {
       const inputs = {
-        pluginDir: '/opt/tofu/plugins',
-        lockfile: 'readonly'
+        exclude: 'aws_instance.test,module.test_module',
+        out: 'filtered-plan'
       };
-      expect(buildTofuInitCommand(inputs)).toBe('tofu init --plugin-dir=/opt/tofu/plugins --lockfile=readonly');
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan --exclude=aws_instance.test --exclude=module.test_module --out=filtered-plan');
     });
   });
 
@@ -90,23 +108,23 @@ describe('OpenTofu Init Integration Tests', () => {
       const inputs = {
         input: 'false',
         noColor: 'true',
-        upgrade: 'true',
-        backendConfig: 'bucket=ci-terraform-state,key=ci/${process.env.BRANCH_NAME || "main"}.tfstate',
-        varFile: 'ci.tfvars'
+        detailedExitcode: 'true',
+        varFile: 'ci.tfvars',
+        out: 'ci-plan'
       };
-      expect(buildTofuInitCommand(inputs)).toBe('tofu init --input=false --no-color --upgrade --var-file=ci.tfvars --backend-config=bucket=ci-terraform-state --backend-config=key=ci/${process.env.BRANCH_NAME || "main"}.tfstate');
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan --var-file=ci.tfvars --detailed-exitcode --input=false --no-color --out=ci-plan');
     });
 
-    test('should generate command for automated deployment with force copy', () => {
+    test('should generate command for automated deployment planning', () => {
       const inputs = {
         input: 'false',
         lock: 'false',
         noColor: 'true',
         json: 'true',
-        forceCopy: 'true',
-        var: 'deployment_id=${Date.now()}'
+        var: 'deployment_id=${Date.now()}',
+        parallelism: '1'
       };
-      expect(buildTofuInitCommand(inputs)).toBe('tofu init --input=false --lock=false --no-color --json --var=deployment_id=${Date.now()} --force-copy');
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan --var=deployment_id=${Date.now()} --input=false --json --lock=false --no-color --parallelism=1');
     });
   });
 
@@ -115,21 +133,21 @@ describe('OpenTofu Init Integration Tests', () => {
       const inputs = {
         var: '',
         varFile: undefined,
-        backendConfig: null,
+        target: null,
         chdir: ''
       };
-      expect(buildTofuInitCommand(inputs)).toBe('tofu init');
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan');
     });
 
     test('should handle mixed valid and invalid inputs', () => {
       const inputs = {
-        upgrade: 'true',
+        destroy: 'true',
         var: 'valid=true',
         varFile: '',
-        backendConfig: 'bucket=test',
+        target: 'aws_instance.test',
         invalidOption: 'should-be-ignored'
       };
-      expect(buildTofuInitCommand(inputs)).toBe('tofu init --upgrade --var=valid=true --backend-config=bucket=test');
+      expect(buildTofuPlanCommand(inputs)).toBe('tofu plan --destroy --target=aws_instance.test --var=valid=true');
     });
   });
 
@@ -139,27 +157,29 @@ describe('OpenTofu Init Integration Tests', () => {
         chdir: './environments/staging',
         varFile: 'common.tfvars,staging.tfvars',
         var: 'environment=staging,region=us-east-1,instance_count=2',
-        backendConfig: 'bucket=multi-env-state,key=staging/terraform.tfstate,region=us-east-1,dynamodb_table=terraform-locks',
-        upgrade: 'true',
-        lockTimeout: '300s'
+        detailedExitcode: 'true',
+        lockTimeout: '300s',
+        out: 'staging-plan'
       };
       
-      const expected = 'tofu -chdir=./environments/staging init --lock-timeout=300s --upgrade --var=environment=staging --var=region=us-east-1 --var=instance_count=2 --var-file=common.tfvars --var-file=staging.tfvars --backend-config=bucket=multi-env-state --backend-config=key=staging/terraform.tfstate --backend-config=region=us-east-1 --backend-config=dynamodb_table=terraform-locks';
-      expect(buildTofuInitCommand(inputs)).toBe(expected);
+      const expected = 'tofu -chdir=./environments/staging plan --var=environment=staging --var=region=us-east-1 --var=instance_count=2 --var-file=common.tfvars --var-file=staging.tfvars --detailed-exitcode --lock-timeout=300s --out=staging-plan';
+      expect(buildTofuPlanCommand(inputs)).toBe(expected);
     });
 
-    test('should generate command for disaster recovery scenario', () => {
+    test('should generate command for comprehensive planning scenario', () => {
       const inputs = {
-        backendConfig: 'bucket=disaster-recovery-state,key=dr/terraform.tfstate',
-        migrateState: 'true',
-        forceCopy: 'true',
-        var: 'disaster_recovery=true,backup_region=us-west-2',
-        reconfigure: 'true',
-        input: 'false'
+        target: 'aws_instance.web,aws_security_group.web',
+        replace: 'aws_instance.database',
+        var: 'environment=production,backup_enabled=true',
+        varFile: 'prod.tfvars',
+        out: 'comprehensive-plan',
+        detailedExitcode: 'true',
+        input: 'false',
+        noColor: 'true'
       };
       
-      const expected = 'tofu init --input=false --var=disaster_recovery=true --var=backup_region=us-west-2 --backend-config=bucket=disaster-recovery-state --backend-config=key=dr/terraform.tfstate --reconfigure --migrate-state --force-copy';
-      expect(buildTofuInitCommand(inputs)).toBe(expected);
+      const expected = 'tofu plan --replace=aws_instance.database --target=aws_instance.web --target=aws_security_group.web --var=environment=production --var=backup_enabled=true --var-file=prod.tfvars --detailed-exitcode --input=false --no-color --out=comprehensive-plan';
+      expect(buildTofuPlanCommand(inputs)).toBe(expected);
     });
   });
 });
